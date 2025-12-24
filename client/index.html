@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔥 SECRET EXCHANGE v3.0 🔥</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+    <canvas id="matrix-bg"></canvas>
+    <div class="scan-line"></div>
+    <div class="console-log">[SYSTEM] SECURE CONNECTION ESTABLISHED • [USER] CONNECTED • [EXCHANGE] v3.0 ONLINE • [MARKET] EUR/RUB • [RATE] 93.0000 • [VOLUME] HIGH • [SECURITY] MAX • [ENCRYPTION] AES-256 • </div>
+    
+    <div class="glitch-container">
+        <div class="terminal">
+            <div class="hacker-text">SECURE CONNECTION</div>
+            
+            <div class="header">
+                <div class="glitch" data-text="DARK EXCHANGE">PLATON EXCHANGE</div>
+                <div class="subtitle">v3.0 • EUR/RUB SECURE CHANNEL</div>
+            </div>
+
+            <div class="input-section">
+                <div class="input-label">ВВЕДИТЕ СУММУ В ЕВРО</div>
+                <input type="number" class="crypto-input" id="euroInput" value="1000" placeholder="0.00" min="0" step="0.01">
+            </div>
+
+            <button class="convert-btn" id="convertBtn">
+                <span>⚡ ИНИЦИИРОВАТЬ ОБМЕН ⚡</span>
+            </button>
+
+            <div class="conversion-animation" id="animationContainer">
+                <div class="coin" id="coin">💶</div>
+                <div class="particles" id="particles"></div>
+            </div>
+
+            <div class="result-display" id="resultDisplay">
+                <div class="result-title">РЕЗУЛЬТАТ КОНВЕРТАЦИИ</div>
+                <div class="amount" id="resultAmount">0 ₽</div>
+                <div class="rate" id="rateInfo">1 EUR = 93.0000 RUB</div>
+            </div>
+
+            <div class="warning">
+                ⚠️ ВНИМАНИЕ: ТРАНЗАКЦИЯ МОНИТОРИТСЯ • НЕ ЗАКРЫВАЙТЕ ОКНО •
+            </div>
+        </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
+
+
