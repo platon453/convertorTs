@@ -5,7 +5,12 @@ import logger from '../utils/logger.js';
 class RateController {
   public async getRate(req: Request, res: Response): Promise<void> {
     try {
-      const rate = await rateService.getRate();
+      const { from, to } = req.params;
+      if (!from || !to) {
+        res.status(400).json({ error: 'Currency pair is required.' });
+        return;
+      }
+      const rate = await rateService.getRate(from.toUpperCase(), to.toUpperCase());
       res.json({ rate });
     } catch (error) {
       if (error instanceof Error) {

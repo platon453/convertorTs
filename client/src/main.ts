@@ -32,28 +32,121 @@ function drawMatrix() {
 
 setInterval(drawMatrix, 50);
 
-// Конвертер
-interface RateResponse {
-    rate: number;
+// --- DOM Elements ---
+const fromCurrencySelect = document.getElementById('fromCurrency') as HTMLSelectElement;
+const toCurrencySelect = document.getElementById('toCurrency') as HTMLSelectElement;
+const swapBtn = document.getElementById('swapBtn') as HTMLButtonElement;
+const amountLabel = document.getElementById('amountLabel') as HTMLLabelElement;
+const amountInput = document.getElementById('amountInput') as HTMLInputElement;
+const convertBtn = document.getElementById('convertBtn') as HTMLButtonElement;
+const resultDisplay = document.getElementById('resultDisplay')!;
+const resultAmount = document.getElementById('resultAmount')!;
+const coin = document.getElementById('coin')!;
+const rateInfo = document.getElementById('rateInfo')!;
+const transactionLog = document.getElementById('transactionLog') as HTMLUListElement;
+const historyChart = document.getElementById('historyChart') as HTMLPreElement;
+
+
+const currencySymbols: { [key: string]: string } = {
+    RUB: '₽',
+    USD: '$',
+    EUR: '€',
+};
+
+// --- History Chart Types ---
+interface HistoryData {
+    [date: string]: {
+        [currency: string]: number;
+    };
 }
 
-const fetchRate = async (): Promise<number> => {
+
+// --- Functions ---
+
+function addLogEntry(message: string) {
+    const li = document.createElement('li');
+    li.textContent = message;
+    transactionLog.prepend(li);
+    if (transactionLog.children.length > 10) {
+        transactionLog.lastChild?.remove();
+    }
+}
+
+const fetchRate = async (from: string, to: string): Promise<number> => {
     try {
-        const response = await fetch('/api/rate');
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
+        const response = await fetch(`/api/rate/${from}-${to}`);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const data: RateResponse = await response.json();
         return data.rate;
     } catch (error) {
         console.error("Failed to fetch rate:", error);
-        // Fallback to a static rate if the API fails
-        return 93;
+        if (from === 'EUR' && to === 'RUB') return 93;
+        if (from === 'USD' && to === 'RUB') return 90;
+        return 1;
+    }
+};
+
+const fetchHistory = async (from: string, to: string): Promise<HistoryData | null> => {
+    try {
+        const response = await fetch(`/api/history/${from}-${to}`);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return await response.json();
+    } catch (error) {
+        console.error("Failed to fetch history:", error);
+        historyChart.textContent = 'Error loading history data...';
+        return null;
     }
 };
 
 
-// Создание частиц
+function renderAsciiChart(data: HistoryData, toCurrency: string) {
+    const rates = Object.entries(data)
+        .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime())
+        .map(([, ratesObj]) => ratesObj[toCurrency]);
+
+    if (!rates || rates.length === 0) {
+        historyChart.textContent = 'No historical data available.';
+        return;
+    }
+
+    const height = 10;
+    const width = rates.length;
+    const minRate = Math.min(...rates);
+    const maxRate = Math.max(...rates);
+    const range = maxRate - minRate;
+
+    const chart = Array(height).fill(0).map(() => Array(width).fill(' '));
+
+    rates.forEach((rate, i) => {
+        const normalized = range === 0 ? height - 1 : Math.round(((rate - minRate) / range) * (height - 1));
+        const y = height - 1 - normalized;
+        chart[y][i] = '█';
+    });
+
+    const yAxisLabelMax = `${maxRate.toFixed(2)} - `;
+    const yAxisLabelMin = `${minRate.toFixed(2)} - `;
+    
+    let chartString = '';
+    chartString += `${yAxisLabelMax.padEnd(10)}${chart[0].join('')}\n`;
+    for (let i = 1; i < height - 1; i++) {
+        chartString += `${' '.repeat(10)}${chart[i].join('')}\n`;
+    }
+    chartString += `${yAxisLabelMin.padEnd(10)}${chart[height - 1].join('')}\n`;
+
+    historyChart.textContent = chartString;
+}
+
+
+async function updateHistoryChart() {
+    const from = fromCurrencySelect.value;
+    const to = toCurrencySelect.value;
+    const historyData = await fetchHistory(from, to);
+    if (historyData) {
+        renderAsciiChart(historyData, to);
+    }
+}
+
+
 function createParticles() {
     const container = document.getElementById('particles')!;
     container.innerHTML = '';
@@ -70,46 +163,45 @@ function createParticles() {
     }
 }
 
-// Анимация конвертации
+function updateAmountLabel() {
+    amountLabel.textContent = `ВВЕДИТЕ СУММУ В ${fromCurrencySelect.value}`;
+    updateHistoryChart();
+}
+
+function swapCurrencies() {
+    const fromValue = fromCurrencySelect.value;
+    fromCurrencySelect.value = toCurrencySelect.value;
+    toCurrencySelect.value = fromValue;
+    updateAmountLabel();
+}
+
+
 async function initiateConversion() {
-    const input = document.getElementById('euroInput') as HTMLInputElement;
-    const resultDisplay = document.getElementById('resultDisplay')!;
-    const resultAmount = document.getElementById('resultAmount')!;
-    const coin = document.getElementById('coin')!;
-    const rateInfo = document.getElementById('rateInfo')!;
+    const fromCurrency = fromCurrencySelect.value;
+    const toCurrency = toCurrencySelect.value;
+    const amount = parseFloat(amountInput.value) || 0;
 
-    const amount = parseFloat(input.value) || 0;
-
-    // Сброс анимации
     resultDisplay.classList.remove('show');
     coin.style.animation = 'none';
 
-    // Эффект хакинга
-    input.style.animation = 'none';
-    setTimeout(() => {
-        input.style.animation = 'glitch 0.3s';
-    }, 10);
+    amountInput.style.animation = 'none';
+    setTimeout(() => { amountInput.style.animation = 'glitch 0.3s'; }, 10);
 
-    // Создаем частицы
     createParticles();
 
-    // Старт анимации
     await new Promise(resolve => setTimeout(resolve, 100));
     coin.style.animation = 'coinSpin 0.5s linear infinite';
 
-    // Симуляция процесса
     for (let i = 0; i < 10; i++) {
         coin.textContent = i % 2 === 0 ? '💶' : '💸';
         coin.style.color = i % 2 === 0 ? '#00ff41' : '#00ff88';
         await new Promise(resolve => setTimeout(resolve, 100));
     }
 
-    // Получаем курс
-    const rate = await fetchRate();
+    const rate = await fetchRate(fromCurrency, toCurrency);
     const result = amount * rate;
     
-    // Анимация цифр
-    resultAmount.textContent = '0 ₽';
+    resultAmount.textContent = `0 ${currencySymbols[toCurrency] || toCurrency}`;
     resultDisplay.classList.add('show');
 
     let current = 0;
@@ -120,25 +212,23 @@ async function initiateConversion() {
             current = result;
             clearInterval(timer);
         }
-        resultAmount.textContent = `${Math.floor(current).toLocaleString()} ₽`;
+        resultAmount.textContent = `${Math.floor(current).toLocaleString()} ${currencySymbols[toCurrency] || toCurrency}`;
     }, 20);
 
-    rateInfo.textContent = `1 EUR = ${rate.toFixed(4)} RUB`;
+    rateInfo.textContent = `1 ${fromCurrency} = ${rate.toFixed(4)} ${toCurrency}`;
     
-    // Финальный эффект
     setTimeout(() => {
         coin.style.animation = 'none';
         coin.textContent = '💰';
         coin.style.fontSize = '5em';
         coin.style.filter = 'drop-shadow(0 0 40px gold)';
 
-        // Вибрация (если поддерживается)
-        if (navigator.vibrate) {
-            navigator.vibrate([100, 50, 100]);
-        }
-
-        // Звуковой эффект (опционально)
+        if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+        
         playSoundEffect();
+        
+        addLogEntry(`Converted ${amount.toLocaleString()} ${fromCurrency} to ${result.toLocaleString(undefined, {maximumFractionDigits: 2})} ${toCurrency} at rate ${rate.toFixed(4)}`);
+
     }, 1500);
 }
 
@@ -159,25 +249,24 @@ function playSoundEffect() {
 
         oscillator.start();
         oscillator.stop(audioContext.currentTime + 0.5);
-    } catch (e) {
-        console.log("Audio not supported");
-    }
+    } catch (e) { console.log("Audio not supported"); }
 }
 
-// Event Listeners
-document.getElementById('convertBtn')?.addEventListener('click', initiateConversion);
+// --- Event Listeners ---
+convertBtn.addEventListener('click', initiateConversion);
+swapBtn.addEventListener('click', swapCurrencies);
+fromCurrencySelect.addEventListener('change', updateAmountLabel);
+toCurrencySelect.addEventListener('change', updateAmountLabel);
 
-
-// Автозапуск при загрузке
+// --- Initial Load ---
 window.onload = function () {
     createParticles();
+    updateAmountLabel();
     setTimeout(() => {
-        document.getElementById('resultDisplay')!.classList.add('show');
         initiateConversion();
     }, 1000);
 };
 
-// Адаптация размера canvas
 window.addEventListener('resize', function () {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;

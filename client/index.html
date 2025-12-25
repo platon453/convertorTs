@@ -21,9 +21,31 @@
                 <div class="subtitle">v3.0 • EUR/RUB SECURE CHANNEL</div>
             </div>
 
+            <div class="currency-selector-container">
+                <div class="currency-selector">
+                    <label for="fromCurrency">ИЗ</label>
+                    <select id="fromCurrency" class="currency-dropdown">
+                        <option value="EUR" selected>EUR</option>
+                        <option value="USD">USD</option>
+                        <option value="RUB">RUB</option>
+                    </select>
+                </div>
+
+                <button id="swapBtn" class="swap-btn">⇄</button>
+
+                <div class="currency-selector">
+                    <label for="toCurrency">В</label>
+                    <select id="toCurrency" class="currency-dropdown">
+                        <option value="RUB" selected>RUB</option>
+                        <option value="EUR">EUR</option>
+                        <option value="USD">USD</option>
+                    </select>
+                </div>
+            </div>
+
             <div class="input-section">
-                <div class="input-label">ВВЕДИТЕ СУММУ В ЕВРО</div>
-                <input type="number" class="crypto-input" id="euroInput" value="1000" placeholder="0.00" min="0" step="0.01">
+                <div class="input-label" id="amountLabel">ВВЕДИТЕ СУММУ В EUR</div>
+                <input type="number" class="crypto-input" id="amountInput" value="1000" placeholder="0.00" min="0" step="0.01">
             </div>
 
             <button class="convert-btn" id="convertBtn">
@@ -41,6 +63,14 @@
                 <div class="rate" id="rateInfo">1 EUR = 93.0000 RUB</div>
             </div>
 
+            <div id="historyChartContainer" class="chart-container">
+                <div class="chart-title">> RATE HISTORY (LAST 7 DAYS):</div>
+                <pre id="historyChart" class="chart-area"></pre>
+            </div>
+            <div id="transactionLogContainer" class="log-container">
+                <div class="log-title">> TRANSACTION LOG:</div>
+                <ul id="transactionLog" class="log-list"></ul>
+            </div>
             <div class="warning">
                 ⚠️ ВНИМАНИЕ: ТРАНЗАКЦИЯ МОНИТОРИТСЯ • НЕ ЗАКРЫВАЙТЕ ОКНО •
             </div>
