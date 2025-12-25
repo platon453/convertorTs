@@ -1,43 +1,64 @@
+import axios from 'axios';
 import logger from '../utils/logger.js';
-import rateService from './rateService.js';
 
-interface HistoryData {
-    [date: string]: {
-        [currency: string]: number;
-    };
+export interface DailyHistory {
+    date: string;
+    rate: number;
+    change: number; // Percentage change from previous day
 }
 
 class HistoryService {
-  public async getHistory(from: string, to: string): Promise<HistoryData> {
-    logger.info(`Generating simulated history for ${from}-${to}`);
-    
+  private getISODate(daysAgo: number): string {
+    const date = new Date();
+    date.setDate(date.getDate() - daysAgo);
+    return date.toISOString().split('T')[0];
+  }
+
+  public async getHistory(from: string, to: string): Promise<DailyHistory[]> {
     if (from === to) {
-        return {};
+        return [];
     }
 
+    const startDate = this.getISODate(8); // Fetch 8 days to calculate 7 days of change
+    const endDate = this.getISODate(0);
+    const url = `https://api.exchangerate.host/timeseries?start_date=${startDate}&end_date=${endDate}&base=${from}&symbols=${to}`;
+    
+    logger.info(`Fetching history from ${url}`);
+
     try {
-      // 1. Get the current, real rate to use as a baseline
-      const currentRate = await rateService.getRate(from, to);
-      const history: HistoryData = {};
+      const response = await axios.get(url);
+      const rates = response.data.rates;
+      
+      if (!rates) {
+        throw new Error('Historical data not found in API response');
+      }
 
-      // 2. Generate data for the last 7 days
-      for (let i = 7; i >= 0; i--) {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        const dateString = date.toISOString().split('T')[0];
+      const sortedDates = Object.keys(rates).sort();
+      const history: DailyHistory[] = [];
 
-        // 3. Add some random variation for a realistic look
-        const variation = (Math.random() - 0.5) * (currentRate * 0.05); // Fluctuation up to 5%
-        const simulatedRate = currentRate + variation;
+      for (let i = 1; i < sortedDates.length; i++) {
+        const currentDate = sortedDates[i];
+        const prevDate = sortedDates[i - 1];
 
-        history[dateString] = { [to]: simulatedRate };
+        const currentRate = rates[currentDate][to];
+        const prevRate = rates[prevDate][to];
+
+        if (currentRate && prevRate) {
+            const change = ((currentRate - prevRate) / prevRate) * 100;
+            history.push({
+                date: currentDate,
+                rate: currentRate,
+                change: change
+            });
+        }
       }
       
-      return history;
+      // Return the last 7 days, reversed so the most recent is first
+      return history.reverse();
 
     } catch (error) {
-      logger.error('Error getting current rate for history simulation:', error);
-      throw new Error('Failed to generate currency history.');
+      logger.error('Error fetching history from API:', error);
+      throw new Error('Failed to fetch currency history from external API.');
     }
   }
 }
