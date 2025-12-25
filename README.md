@@ -47,3 +47,12 @@ npm run dev
 Клиентское приложение запустится на `http://localhost:5173` (или на другом порту, если 5173 занят).
 
 После запуска, откройте в браузере адрес, который будет указан в терминале для Frontend.
+
+---
+#### Тест запросов в бразуер
+```
+https://api.exchangerate-api.com/v4/latest/USD
+```
+```
+https://api.exchangerate-api.com/v4/latest/EUR
+```
